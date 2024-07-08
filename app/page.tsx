@@ -14,7 +14,7 @@ export default function Home() {
   return (
    <main className="text-center w-full mx-auto max-w-[1240px] mt-16">
      <h1 className="text-4xl font-bold"> Auth Page</h1>
-     <GoogleButton  onClick={()=> signIn('google')} classNamemx-auto mt-16/>
+     <GoogleButton  onClick={()=> signIn('google')} className ='mx-auto mt-16'/>
    </main>
   );
 }
