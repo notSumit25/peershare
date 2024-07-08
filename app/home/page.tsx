@@ -1,12 +1,50 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
+import QRCode from 'qrcode.react';
+import { fileURLToPath } from "url";
+//@ts-ignore
+import  RTCPeerConnectionManager from "../ws";
 export default function Home() {
   const [file, setFile] = useState<File | undefined>(undefined);
+  const [code,setcode]=useState<string|undefined>()
+  const [ReceiveCode,setReceiveCode]=useState<string>("")
+  const [qr,setQr]=useState<string>('')
+  const [ReceivedFile,setReceiveFile]=useState()
+
+  useEffect(()=>{
+    if(ReceiveCode.length == 6)
+    {
+
+      //  RTCPeerConnectionManager.getInstance().getSocket().getRTCConnection().receiver(ReceiveCode,setReceiveFile);
+       console.log("file received",ReceivedFile)
+    }
+  },[ReceiveCode])
+
+  function generateNumberCode() {
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        const randomDigit = Math.floor(Math.random() * 10);
+        code += randomDigit;
+    }
+    return code;
+}
+function generateQRCode() {
+    if(file){
+    const fileURL = URL.createObjectURL(file)
+     setQr(fileURL)
+    }
+}
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFile(e.target.files?.[0]);
+    //generate code
+    const code=generateNumberCode();
+    setcode(code)
+    generateQRCode()
+    console.log(RTCPeerConnectionManager)
+    // RTCPeerConnectionManager.getInstance().getSocket().getRTCConnection().sender(code,file);
     console.log(file);
   };
   return (
@@ -14,7 +52,8 @@ export default function Home() {
       <div className="w-96 h-96 flex flex-col gap-8">
         <div className="w-96 text-center h-48 flex flex-col justify-center items-center shadow-lg rounded-lg">
           {file ? (
-            <div className="flex justify-between gap-4">
+          <>
+           <div className="flex justify-between gap-4">
               <p>{file.name}</p>
               <button
                 onClick={() => setFile(undefined)}
@@ -23,6 +62,11 @@ export default function Home() {
                 X
               </button>
             </div>
+            <div>
+                  {code}
+                  <QRCode value={qr} />
+            </div>
+          </>
           ) : 
           <div>
             <input
@@ -42,6 +86,7 @@ export default function Home() {
           Receive File
           <input
             type="text"
+            value={ReceiveCode}
             className="border py-1 px-2 w-60 text-sm bg-gray-200"
             placeholder="Input Key"
           />
