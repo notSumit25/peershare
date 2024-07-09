@@ -42,7 +42,7 @@ export default class RTCPeerConnectionManager {
         this.socket.emit('message', {roomId,message:'sender' });
         console.log(roomId,file)
         this.pc = this.getRTCConnection();
-        this.socket.emit('file',{roomId,file:file.name})
+    
         this.pc.onnegotiationneeded = async () => {
             this.socket.emit('createOffer', { roomId, offer: this.pc?.localDescription });
             const offer = await this.pc?.createOffer();
@@ -92,7 +92,10 @@ export default class RTCPeerConnectionManager {
              console.log("request reach to sender")
             this.socket.emit('createOffer', { roomId, offer:this.pc?.localDescription });
         });
-       
+        this.socket.on('sendfile', () => {
+            this.socket.emit('file',{roomId,file:file.name})
+       });
+      
 
         
 
@@ -122,7 +125,7 @@ export default class RTCPeerConnectionManager {
         this.socket.emit('requestOffer', { roomId });
         
       
-      
+        this.socket.emit('sendfile',{roomId})
         this.socket.on('createOffer', (offer: RTCSessionDescriptionInit) => {
             console.log("offer recieved by rec",offer)
             this.pc?.setRemoteDescription(offer).then(()=>{
