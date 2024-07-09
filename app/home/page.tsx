@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 //@ts-ignore
 import  RTCPeerConnectionManager from "../ws";
 export default function Home() {
-  const [file, setFile] = useState<File | undefined>(undefined);
+  const [file, setFile] = useState<File>();
   const [code,setcode]=useState<string|undefined>()
   const [ReceiveCode,setReceiveCode]=useState<string>("")
   const [qr,setQr]=useState<string>('')
@@ -40,12 +40,13 @@ function generateQRCode() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFile(e.target.files?.[0]);
     //generate code
+    console.log(file)
     const code=generateNumberCode();
     setcode(code)
     generateQRCode()
-    console.log(RTCPeerConnectionManager)
+    console.log(RTCPeerConnectionManager.getInstance().getSocket())
     // RTCPeerConnectionManager.getInstance().getSocket().getRTCConnection().sender(code,file);
-    console.log(file);
+   
   };
   return (
     <div className="w-full h-screen flex justify-center items-center">

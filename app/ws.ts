@@ -1,6 +1,7 @@
+import { off } from "process";
 import { io } from "socket.io-client";
 
-export class RTCPeerConnectionManager {
+export default class RTCPeerConnectionManager {
     private static instance: RTCPeerConnectionManager | null = null;
     private socket: any;
     private pc: RTCPeerConnection | null;
@@ -28,7 +29,7 @@ export class RTCPeerConnectionManager {
 
     public getSocket() {
         if (!this.socket) {
-            this.socket = io("https://localhost:3001");
+            this.socket = io("http://localhost:3001");
         }
         return this.socket;
     }
@@ -36,7 +37,7 @@ export class RTCPeerConnectionManager {
     public async sender(roomId: any, file: any) {
         const sender = 'sender';
         this.socket.emit('message', { roomId, sender });
-
+        console.log(roomId,file)
         this.pc = this.getRTCConnection();
 
         const offer = await this.pc.createOffer();
@@ -55,7 +56,8 @@ export class RTCPeerConnectionManager {
                 this.socket.emit('iceCandidate', { roomId, candidate: event.candidate });
             }
         };
-
+        console.log('offer',offer)
+        this.socket.emit('createOffer', { roomId, offer });
         this.pc.onnegotiationneeded = async () => {
             const offer = await this.pc.createOffer();
             await this.pc.setLocalDescription(offer);
