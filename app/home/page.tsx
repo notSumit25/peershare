@@ -18,13 +18,14 @@ export default function Home() {
         if (ReceiveCode.length === 6) {
           console.log(ReceiveCode)
           const rtcManager = RTCPeerConnectionManager.getInstance();
-           const socket=rtcManager.getSocket()
-            await rtcManager.receiver(ReceiveCode, setReceiveFile);
+            rtcManager.receiver(ReceiveCode, setReceiveFile).then(()=>{
+              console.log("file recieved:",ReceivedFile)
+            })
         }
     };
 
     receiveFile();
-}, [ReceiveCode]);
+}, [ReceiveCode,setReceiveFile]);
 
   function generateNumberCode() {
     let code = '';
