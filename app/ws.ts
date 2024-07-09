@@ -53,6 +53,7 @@ export default class RTCPeerConnectionManager {
 
         this.pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
             if (event.candidate) {
+                console.log('iceCandidate', event.candidate);
                 this.socket.emit('iceCandidate', { roomId, candidate: event.candidate });
             }
         };
@@ -67,14 +68,16 @@ export default class RTCPeerConnectionManager {
             this.socket.emit('createOffer', { roomId, offer: this.pc?.localDescription });
         };
 
-        this.socket.on('receiverAnswer', async(ans: RTCSessionDescriptionInit) => {
+        this.socket.on('receiverAnswer', async (ans: RTCSessionDescriptionInit) => {
             console.log('ans is set',ans)
             const P :RTCSessionDescriptionInit ={
                 sdp:ans.sdp,
                 type:ans.type
              }
              console.log('p',P)
-             await this.pc?.setRemoteDescription(P);
+             if(!this.pc?.currentRemoteDescription){
+                 await this.pc?.setRemoteDescription(P);
+                }
         });
         
 
