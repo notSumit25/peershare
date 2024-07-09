@@ -39,17 +39,26 @@ export default class RTCPeerConnectionManager {
         this.socket.emit('message', {roomId,message:'sender' });
         console.log(roomId,file)
         this.pc = this.getRTCConnection();
-
-        const offer = await this.pc.createOffer();
-        await this.pc.setLocalDescription(offer);
-         console.log('offer by sender',offer)
+        this.pc.onnegotiationneeded = async () => {
+            this.socket.emit('createOffer', { roomId, offer: this.pc?.localDescription });
+            const offer = await this.pc?.createOffer();
+            await this.pc?.setLocalDescription(offer);
+            console.log('offer by sender',offer)
+        };
         this.dataChannel = this.pc.createDataChannel('fileTransfer');
         this.dataChannel.binaryType = 'arraybuffer';
         this.dataChannel.onopen = () => {
             if (this.dataChannel) {
-                this.dataChannel.send(file);
+                const reader = new FileReader();
+                reader.onload = () => {
+                    if (reader.result) {
+                        this.dataChannel?.send(reader.result as ArrayBuffer);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
             }
         };
+        
 
         this.pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
             if (event.candidate) {
@@ -64,9 +73,7 @@ export default class RTCPeerConnectionManager {
         });
        
 
-        this.pc.onnegotiationneeded =  () => {
-            this.socket.emit('createOffer', { roomId, offer: this.pc?.localDescription });
-        };
+        
 
         this.socket.on('receiverAnswer', async (ans: RTCSessionDescriptionInit) => {
             console.log('ans is set',ans)
@@ -121,6 +128,12 @@ export default class RTCPeerConnectionManager {
                 const data = event.data;
                 console.log('Received data:', data);
                 fileCallback(data);
+                const blob = new Blob([data], { type: 'application/octet-stream' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'file';
+                document.body.appendChild(link);
+                link.click();
             };
         };
         }
