@@ -51,7 +51,7 @@ export default class RTCPeerConnectionManager {
         };
         this.dataChannel = this.pc.createDataChannel('fileTransfer');
         this.dataChannel.binaryType = 'arraybuffer';
-        const  CHUNK_SIZE=100;
+        const  CHUNK_SIZE=16000;
         this.dataChannel.onopen = () => {
             if (this.dataChannel) {
                 const reader = new FileReader();
@@ -153,18 +153,33 @@ export default class RTCPeerConnectionManager {
         
         this.pc.ondatachannel = (event: RTCDataChannelEvent) => {
             this.dataChannel = event.channel;
+            const receivedChunks: ArrayBuffer[] = [];
+        
             this.dataChannel.onmessage = (event: MessageEvent) => {
-                const data = event.data;
-                console.log('Received data:', data);
-                fileCallback(data);
-                 if(this.filename){
-                const blob = new Blob([data], { type: 'application/octet-stream' });
+                const chunk = event.data as ArrayBuffer;
+                receivedChunks.push(chunk);
+                console.log('Received chunk:', chunk);
+            };
+        
+            this.dataChannel.onclose = () => {
+                console.log('Data channel closed');
+                // Concatenate all received chunks into a single ArrayBuffer
+                const totalLength = receivedChunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
+                const concatenatedArrayBuffer = new Uint8Array(totalLength);
+                let offset = 0;
+                for (const chunk of receivedChunks) {
+                    concatenatedArrayBuffer.set(new Uint8Array(chunk), offset);
+                    offset += chunk.byteLength;
+                }
+        
+                // Create a Blob from the concatenated ArrayBuffer
+                const blob = new Blob([concatenatedArrayBuffer.buffer], { type: 'application/octet-stream' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = `${this.filename}`;
+                link.download = `${this.filename}` // You can set the file name here
                 document.body.appendChild(link);
                 link.click();
-                 }
+                document.body.removeChild(link);
             };
         };
         }
