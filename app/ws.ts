@@ -1,3 +1,4 @@
+import { time } from "console";
 import { off } from "process";
 import { io } from "socket.io-client";
 
@@ -5,12 +6,14 @@ export default class RTCPeerConnectionManager {
     private static instance: RTCPeerConnectionManager | null = null;
     private socket: any;
     private pc: RTCPeerConnection | null;
-    private dataChannel: RTCDataChannel | null;
+    private dataChannel: any| null;
+    private filename:string | null;
 
     private constructor() {
         this.socket = null;
         this.pc = null;
         this.dataChannel = null;
+        this.filename=null
     }
 
     public static getInstance(): RTCPeerConnectionManager {
@@ -39,6 +42,7 @@ export default class RTCPeerConnectionManager {
         this.socket.emit('message', {roomId,message:'sender' });
         console.log(roomId,file)
         this.pc = this.getRTCConnection();
+        this.socket.emit('file',{roomId,file:file.name})
         this.pc.onnegotiationneeded = async () => {
             this.socket.emit('createOffer', { roomId, offer: this.pc?.localDescription });
             const offer = await this.pc?.createOffer();
@@ -47,18 +51,35 @@ export default class RTCPeerConnectionManager {
         };
         this.dataChannel = this.pc.createDataChannel('fileTransfer');
         this.dataChannel.binaryType = 'arraybuffer';
+        const  CHUNK_SIZE=100;
         this.dataChannel.onopen = () => {
             if (this.dataChannel) {
                 const reader = new FileReader();
                 reader.onload = () => {
                     if (reader.result) {
-                        this.dataChannel?.send(reader.result as ArrayBuffer);
+                        const arrayBuffer = reader.result as ArrayBuffer;
+                        let offset = 0;
+        
+                        const sendChunk = () => {
+                            if (offset < arrayBuffer.byteLength) {
+                                const chunk = arrayBuffer.slice(offset, offset + CHUNK_SIZE);
+                                this.dataChannel?.send(chunk);
+                                offset += CHUNK_SIZE;
+        
+                                if (this.dataChannel?.bufferedAmount > this.dataChannel?.bufferedAmountLowThreshold) {
+                                    this.dataChannel.onbufferedamountlow = sendChunk;
+                                } else {
+                                    sendChunk();
+                                }
+                            }
+                        };
+        
+                        sendChunk();
                     }
                 };
                 reader.readAsArrayBuffer(file);
-            }
+          }
         };
-        
 
         this.pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
             if (event.candidate) {
@@ -99,7 +120,9 @@ export default class RTCPeerConnectionManager {
         this.pc =  this.getRTCConnection();
         this.socket.emit('message', { roomId ,message:'receiver' });
         this.socket.emit('requestOffer', { roomId });
-     
+        
+      
+      
         this.socket.on('createOffer', (offer: RTCSessionDescriptionInit) => {
             console.log("offer recieved by rec",offer)
             this.pc?.setRemoteDescription(offer).then(()=>{
@@ -117,7 +140,10 @@ export default class RTCPeerConnectionManager {
                 this.socket.emit('iceCandidate', { roomId, candidate: event.candidate });
             }
         };
-
+        this.socket.on('file',({file}:any)=> {
+            console.log(file)
+           this.filename=file
+        })
         this.socket.on('iceCandidate', (candidate: RTCIceCandidate) => {
             this.pc?.addIceCandidate(candidate);
         });
@@ -128,12 +154,14 @@ export default class RTCPeerConnectionManager {
                 const data = event.data;
                 console.log('Received data:', data);
                 fileCallback(data);
+                 if(this.filename){
                 const blob = new Blob([data], { type: 'application/octet-stream' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = 'file';
+                link.download = `${this.filename}`;
                 document.body.appendChild(link);
                 link.click();
+                 }
             };
         };
         }
