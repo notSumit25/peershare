@@ -13,14 +13,18 @@ export default function Home() {
   const [qr,setQr]=useState<string>('')
   const [ReceivedFile,setReceiveFile]=useState()
 
-  useEffect(()=>{
-    if(ReceiveCode.length == 6)
-    {
+  useEffect(() => {
+    const receiveFile = async () => {
+        if (ReceiveCode.length === 6) {
+          console.log(ReceiveCode)
+          const rtcManager = RTCPeerConnectionManager.getInstance();
+           const socket=rtcManager.getSocket()
+            await rtcManager.receiver(ReceiveCode, setReceiveFile);
+        }
+    };
 
-      //  RTCPeerConnectionManager.getInstance().getSocket().getRTCConnection().receiver(ReceiveCode,setReceiveFile);
-       console.log("file received",ReceivedFile)
-    }
-  },[ReceiveCode])
+    receiveFile();
+}, [ReceiveCode]);
 
   function generateNumberCode() {
     let code = '';
@@ -36,17 +40,20 @@ function generateQRCode() {
      setQr(fileURL)
     }
 }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFile(e.target.files?.[0]);
-    //generate code
-    console.log(file)
+ const sendfile=async(file:any)=>{
+  if (file) {
+    const rtcManager = RTCPeerConnectionManager.getInstance();
+    const socket=rtcManager.getSocket()
     const code=generateNumberCode();
     setcode(code)
+    await rtcManager.sender(code, file);
+    console.log('File sent:', file);
+}
+ }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFile(e.target.files?.[0]);
     generateQRCode()
-    console.log(RTCPeerConnectionManager.getInstance().getSocket())
-    // RTCPeerConnectionManager.getInstance().getSocket().getRTCConnection().sender(code,file);
-   
+    sendfile(e.target.files?.[0])
   };
   return (
     <div className="w-full h-screen flex justify-center items-center">
@@ -88,6 +95,7 @@ function generateQRCode() {
           <input
             type="text"
             value={ReceiveCode}
+            onChange={(e)=> setReceiveCode(e.target.value)}
             className="border py-1 px-2 w-60 text-sm bg-gray-200"
             placeholder="Input Key"
           />

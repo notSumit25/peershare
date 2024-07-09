@@ -35,14 +35,13 @@ export default class RTCPeerConnectionManager {
     }
 
     public async sender(roomId: any, file: any) {
-        const sender = 'sender';
-        this.socket.emit('message', { roomId, sender });
+        this.socket.emit('message', {roomId,message:'sender' });
         console.log(roomId,file)
         this.pc = this.getRTCConnection();
 
         const offer = await this.pc.createOffer();
         await this.pc.setLocalDescription(offer);
-
+        
         this.dataChannel = this.pc.createDataChannel('fileTransfer');
         this.dataChannel.binaryType = 'arraybuffer';
         this.dataChannel.onopen = () => {
@@ -56,17 +55,21 @@ export default class RTCPeerConnectionManager {
                 this.socket.emit('iceCandidate', { roomId, candidate: event.candidate });
             }
         };
-        console.log('offer',offer)
-        this.socket.emit('createOffer', { roomId, offer });
+        
+        this.socket.on('requestOffer', async () => {
+            this.socket.emit('createOffer', { roomId, offer });
+        });
+       
+
         this.pc.onnegotiationneeded = async () => {
-            const offer = await this.pc.createOffer();
-            await this.pc.setLocalDescription(offer);
             this.socket.emit('createOffer', { roomId, offer });
         };
 
         this.socket.on('receiverAnswer', async (ans: RTCSessionDescriptionInit) => {
+            console.log('ans is set')
             await this.pc?.setRemoteDescription(ans);
         });
+        
 
         this.socket.on('iceCandidate', (candidate: RTCIceCandidate) => {
             this.pc?.addIceCandidate(candidate);
@@ -74,28 +77,32 @@ export default class RTCPeerConnectionManager {
     }
 
     public async receiver(roomId: any, fileCallback: (data: any) => void) {
-        const receiver = 'receiver';
-        this.socket.emit('message', { roomId, receiver });
-
-        this.pc = this.getRTCConnection();
-
-        const offer = await this.pc.createOffer();
-        await this.pc.setLocalDescription(offer);
+        this.socket.emit('message', { roomId ,message:'receiver' });
+         console.log('hey')
+        this.pc =  this.getRTCConnection();
 
         this.pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
             if (event.candidate) {
                 this.socket.emit('iceCandidate', { roomId, candidate: event.candidate });
             }
         };
-
-        this.socket.on('createOffer', async (offer: RTCSessionDescriptionInit) => {
-            await this.pc?.setRemoteDescription(offer);
-            const answer = await this.pc?.createAnswer();
-            if (answer) {
-                this.socket.emit('receiverAnswer', { roomId, ans: answer });
+        
+       
+        
+        const handleOffer = async (offer: RTCSessionDescriptionInit) => {
+            try {
+                await this.pc?.setRemoteDescription(offer);
+                const answer = await this.pc?.createAnswer(); 
+                console.log('ans',answer)
+                if (answer) {
+                    await this.pc?.setLocalDescription(answer); // Set local description
+                    this.socket.emit('receiverAnswer', { roomId, ans: answer }); // Send answer to sender
+                }
+            } catch (error) {
+                console.error('Error handling offer:', error);
             }
-        });
-
+        };
+        
         this.socket.on('iceCandidate', (candidate: RTCIceCandidate) => {
             this.pc?.addIceCandidate(candidate);
         });
@@ -108,5 +115,10 @@ export default class RTCPeerConnectionManager {
                 fileCallback(data);
             };
         };
+        this.socket.on('createOffer', async(offer: RTCSessionDescriptionInit) => {
+            console.log("offer recieved",offer)
+           await handleOffer(offer)
+        });
+        this.socket.emit('requestOffer', { roomId });
     }
 }
