@@ -39,7 +39,7 @@ export default class RTCPeerConnectionManager {
 
     public getSocket() {
         if (!this.socket) {
-            this.socket = io("http://localhost:3001");
+            this.socket = io("https://sendpeer2-backend.onrender.com");
         }
         return this.socket;
     }
