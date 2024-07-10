@@ -65,7 +65,6 @@ export default class RTCPeerConnectionManager {
                                 const chunk = arrayBuffer.slice(offset, offset + CHUNK_SIZE);
                                 this.dataChannel?.send(chunk);
                                 offset += CHUNK_SIZE;
-        
                                 if (this.dataChannel?.bufferedAmount > this.dataChannel?.bufferedAmountLowThreshold) {
                                     this.dataChannel.onbufferedamountlow = sendChunk;
                                 } else {
@@ -158,6 +157,9 @@ export default class RTCPeerConnectionManager {
             this.dataChannel.onmessage = (event: MessageEvent) => {
                 const chunk = event.data as ArrayBuffer;
                 receivedChunks.push(chunk);
+                if(chunk.byteLength!==16000){
+                    this.dataChannel.close();
+                }
                 console.log('Received chunk:', chunk);
             };
         
