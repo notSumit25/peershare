@@ -77,7 +77,7 @@ function MainComponent() {
               </div>
               <div>
                 {code}
-                <QRCode value={`http://localhost:3000?code=${code}`} />
+                <QRCode value={`https://peershare-ten.vercel.app?code=${code}`} />
               </div>
             </>
           ) : (
