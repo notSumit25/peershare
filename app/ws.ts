@@ -40,14 +40,14 @@ export default class RTCPeerConnectionManager {
     public async sender(roomId: any, file: any) {
         this.getSocket();
         this.socket.emit('message', {roomId,message:'sender' });
-        console.log(roomId,file)
+       
         this.pc = this.getRTCConnection();
     
         this.pc.onnegotiationneeded = async () => {
             this.socket.emit('createOffer', { roomId, offer: this.pc?.localDescription });
             const offer = await this.pc?.createOffer();
             await this.pc?.setLocalDescription(offer);
-            console.log('offer by sender',offer)
+          
         };
         this.dataChannel = this.pc.createDataChannel('fileTransfer');
         this.dataChannel.binaryType = 'arraybuffer';
@@ -65,6 +65,7 @@ export default class RTCPeerConnectionManager {
                                 const chunk = arrayBuffer.slice(offset, offset + CHUNK_SIZE);
                                 this.dataChannel?.send(chunk);
                                 offset += CHUNK_SIZE;
+        
                                 if (this.dataChannel?.bufferedAmount > this.dataChannel?.bufferedAmountLowThreshold) {
                                     this.dataChannel.onbufferedamountlow = sendChunk;
                                 } else {
@@ -82,13 +83,13 @@ export default class RTCPeerConnectionManager {
 
         this.pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
             if (event.candidate) {
-                console.log('iceCandidate', event.candidate);
+              
                 this.socket.emit('iceCandidate', { roomId, candidate: event.candidate });
             }
         };
         
         this.socket.on('requestOffer', () => {
-             console.log("request reach to sender")
+            
             this.socket.emit('createOffer', { roomId, offer:this.pc?.localDescription });
         });
         this.socket.on('sendfile', () => {
@@ -99,14 +100,12 @@ export default class RTCPeerConnectionManager {
         
 
         this.socket.on('receiverAnswer', async (ans: RTCSessionDescriptionInit) => {
-            console.log('ans is set',ans)
-            const P :RTCSessionDescriptionInit ={
+            const answer :RTCSessionDescriptionInit ={
                 sdp:ans.sdp,
                 type:ans.type
              }
-             console.log('p',P)
              if(!this.pc?.currentRemoteDescription){
-                 await this.pc?.setRemoteDescription(P);
+                 await this.pc?.setRemoteDescription(answer);
                 }
         });
         
@@ -126,10 +125,10 @@ export default class RTCPeerConnectionManager {
       
         this.socket.emit('sendfile',{roomId})
         this.socket.on('createOffer', (offer: RTCSessionDescriptionInit) => {
-            console.log("offer recieved by rec",offer)
+           
             this.pc?.setRemoteDescription(offer).then(()=>{
                 this.pc?.createAnswer().then((answer: RTCSessionDescriptionInit)=>{
-                    console.log(answer)
+                 
                  this.pc?.setLocalDescription(answer).then(()=>{
                      this.socket.emit('receiverAnswer', { roomId, ans: this.pc?.localDescription }); 
                  })
@@ -143,7 +142,7 @@ export default class RTCPeerConnectionManager {
             }
         };
         this.socket.on('file',({file}:any)=> {
-            console.log(file)
+          
            this.filename=file
         })
         this.socket.on('iceCandidate', (candidate: RTCIceCandidate) => {
@@ -157,14 +156,11 @@ export default class RTCPeerConnectionManager {
             this.dataChannel.onmessage = (event: MessageEvent) => {
                 const chunk = event.data as ArrayBuffer;
                 receivedChunks.push(chunk);
-                if(chunk.byteLength!==16000){
-                    this.dataChannel.close();
-                }
-                console.log('Received chunk:', chunk);
+              
             };
         
             this.dataChannel.onclose = () => {
-                console.log('Data channel closed');
+            
                 // Concatenate all received chunks into a single ArrayBuffer
                 const totalLength = receivedChunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
                 const concatenatedArrayBuffer = new Uint8Array(totalLength);
