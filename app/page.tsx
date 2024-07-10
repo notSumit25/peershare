@@ -104,11 +104,15 @@ export default function Home({params}:any) {
           />
         </div>
         <div>
-    
+     
       {progress && (
-        <>
-        <progress value={progress} max="100"></progress>
-        <span>{progress.toFixed(2)}%</span></>     
+        <>  <progress value={progress} max="100" className="w-full h-4 bg-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-blue-500 h-full" style={{ width: `${progress}%` }}></div>
+    </progress>
+    <span className="block mt-2 text-center text-gray-700 font-semibold">
+              {progress.toFixed(2)}%
+          </span>
+          </>
       )}
    
     </div>
