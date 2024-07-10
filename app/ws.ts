@@ -2,6 +2,13 @@ import { time } from "console";
 import { off } from "process";
 import { io } from "socket.io-client";
 
+const configuration = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+    ],
+};
+
+
 export default class RTCPeerConnectionManager {
     private static instance: RTCPeerConnectionManager | null = null;
     private socket: any;
@@ -25,7 +32,7 @@ export default class RTCPeerConnectionManager {
 
     public getRTCConnection(): RTCPeerConnection {
         if (!this.pc) {
-            this.pc = new RTCPeerConnection();
+            this.pc = new RTCPeerConnection(configuration);
         }
         return this.pc;
     }
@@ -173,7 +180,6 @@ export default class RTCPeerConnectionManager {
                 receivedBytes += chunk.byteLength;
                 if (totalFileSize > 0) {
                     const progress = (receivedBytes / totalFileSize) * 100;
-                    console.log("progress--",progress)
                     fileCallback(progress);  
                 }
                 if(chunk.byteLength !=16000)

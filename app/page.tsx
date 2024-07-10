@@ -104,9 +104,11 @@ export default function Home({params}:any) {
           />
         </div>
         <div>
-      <progress value={progress} max="100"></progress>
+    
       {progress && (
-             <span>{progress.toFixed(2)}%</span>
+        <>
+        <progress value={progress} max="100"></progress>
+        <span>{progress.toFixed(2)}%</span></>     
       )}
    
     </div>
