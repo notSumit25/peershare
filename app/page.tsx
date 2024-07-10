@@ -13,7 +13,7 @@ export default function Home({params}:any) {
   const [code,setcode]=useState<string|undefined>()
   const [ReceiveCode,setReceiveCode]=useState<string>("")
   const [qr,setQr]=useState<string>('')
-  const [ReceivedFile,setReceiveFile]=useState()
+  const [progress,setProgress]=useState<number|null>()
 
   const searchParams = useSearchParams()
   useEffect(()=>{
@@ -28,12 +28,12 @@ export default function Home({params}:any) {
     const receiveFile = async () => {
         if (ReceiveCode.length === 6) {
           const rtcManager = RTCPeerConnectionManager.getInstance();
-            rtcManager.receiver(ReceiveCode, setReceiveFile)
+            rtcManager.receiver(ReceiveCode,setProgress)
         }
     };
 
     receiveFile();
-}, [ReceiveCode,setReceiveFile]);
+}, [ReceiveCode]);
 
   function generateNumberCode() {
     let code = '';
@@ -103,6 +103,13 @@ export default function Home({params}:any) {
             placeholder="Input Key"
           />
         </div>
+        <div>
+      <progress value={progress} max="100"></progress>
+      {progress && (
+             <span>{progress.toFixed(2)}%</span>
+      )}
+   
+    </div>
       </div>
     </div>
   );

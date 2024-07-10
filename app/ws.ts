@@ -93,7 +93,7 @@ export default class RTCPeerConnectionManager {
             this.socket.emit('createOffer', { roomId, offer:this.pc?.localDescription });
         });
         this.socket.on('sendfile', () => {
-            this.socket.emit('file',{roomId,file:file.name})
+            this.socket.emit('file',{roomId,file:file.name, filesize: file.size})
        });
       
 
@@ -124,27 +124,41 @@ export default class RTCPeerConnectionManager {
         
       
         this.socket.emit('sendfile',{roomId})
-        this.socket.on('createOffer', (offer: RTCSessionDescriptionInit) => {
-           
-            this.pc?.setRemoteDescription(offer).then(()=>{
-                this.pc?.createAnswer().then((answer: RTCSessionDescriptionInit)=>{
-                 
-                 this.pc?.setLocalDescription(answer).then(()=>{
-                     this.socket.emit('receiverAnswer', { roomId, ans: this.pc?.localDescription }); 
-                 })
-                });   
-             })
+        this.socket.on('createOffer', async (offer: RTCSessionDescriptionInit) => {
+            if (this.pc) {
+                try {
+                    // Set the remote offer description
+                    await this.pc.setRemoteDescription(new RTCSessionDescription(offer));
+                    
+                    // Create an answer
+                    const answer = await this.pc.createAnswer();
+                    
+                    // Set the local answer description
+                    await this.pc.setLocalDescription(answer);
+                    
+                    // Emit the answer back to the signaling server
+                    if (this.pc.localDescription) {
+                        this.socket.emit('receiverAnswer', { roomId, ans: this.pc.localDescription });
+                    }
+                } catch (error) {
+                    console.error('Error during offer handling:', error);
+                }
+            }
         });
-       
+        
         this.pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
             if (event.candidate) {
                 this.socket.emit('iceCandidate', { roomId, candidate: event.candidate });
             }
         };
-        this.socket.on('file',({file}:any)=> {
+        let totalFileSize = 0;
+        let receivedBytes = 0;
+        this.socket.on('file',async({file,filesize}:any)=> {
           
            this.filename=file
+           totalFileSize=filesize
         })
+        
         this.socket.on('iceCandidate', (candidate: RTCIceCandidate) => {
             this.pc?.addIceCandidate(candidate);
         });
@@ -156,7 +170,16 @@ export default class RTCPeerConnectionManager {
             this.dataChannel.onmessage = (event: MessageEvent) => {
                 const chunk = event.data as ArrayBuffer;
                 receivedChunks.push(chunk);
-              
+                receivedBytes += chunk.byteLength;
+                if (totalFileSize > 0) {
+                    const progress = (receivedBytes / totalFileSize) * 100;
+                    console.log("progress--",progress)
+                    fileCallback(progress);  
+                }
+                if(chunk.byteLength !=16000)
+                {
+                    this.dataChannel.onclose()
+                }
             };
         
             this.dataChannel.onclose = () => {
