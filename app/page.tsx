@@ -28,15 +28,16 @@ function MainComponent() {
   useEffect(() => {
     const search = searchParams.get('code');
     if (search) {
-      setReceiveCode(search);
+      setReceiveCode(search.trim());
     }
   }, [searchParams]);
 
   useEffect(() => {
     const receiveFile = async () => {
-      if (receiveCode.length === 6) {
+      const cleaned = receiveCode.replace(/\D/g, "").trim();
+      if (cleaned.length === 6) {
         const rtcManager = RTCPeerConnectionManager.getInstance();
-        rtcManager.receiver(receiveCode, setProgress, handleReceiveComplete);
+        rtcManager.receiver(cleaned, setProgress, handleReceiveComplete);
       }
     };
     receiveFile();
@@ -130,7 +131,7 @@ function MainComponent() {
             <input
               type="text"
               value={receiveCode}
-              onChange={(e) => setReceiveCode(e.target.value)}
+              onChange={(e) => setReceiveCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
               className="border border-slate-300 rounded-lg py-2 px-3 text-sm bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-300"
               placeholder="Enter 6-digit code"
             />
