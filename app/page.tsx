@@ -14,6 +14,15 @@ function MainComponent() {
   const [qr, setQr] = useState<string>('');
   const [progress, setProgress] = useState<number | null>(null);
 
+  const handleReceiveComplete = () => {
+    setReceiveCode("");
+    setProgress(null);
+    if (typeof window !== "undefined") {
+      const basePath = window.location.pathname || "/";
+      window.history.replaceState({}, "", basePath);
+    }
+  };
+
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -27,7 +36,7 @@ function MainComponent() {
     const receiveFile = async () => {
       if (receiveCode.length === 6) {
         const rtcManager = RTCPeerConnectionManager.getInstance();
-        rtcManager.receiver(receiveCode, setProgress);
+        rtcManager.receiver(receiveCode, setProgress, handleReceiveComplete);
       }
     };
     receiveFile();

@@ -122,7 +122,7 @@ export default class RTCPeerConnectionManager {
         });
     }
 
-    public async receiver(roomId: any, fileCallback: (data: any) => void) {
+    public async receiver(roomId: any, fileCallback: (data: any) => void, completionCallback?: () => void) {
 
         this.getSocket();
         this.pc =  this.getRTCConnection();
@@ -207,6 +207,12 @@ export default class RTCPeerConnectionManager {
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+
+                // Notify caller that the transfer has finished so UI can reset
+                fileCallback(100);
+                if (completionCallback) {
+                    completionCallback();
+                }
             };
         };
         }
